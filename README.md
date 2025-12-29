@@ -47,15 +47,15 @@ and **will not be queried**.
 
 ## SmartThings OAuth 2.0
 
-You need:
-- SmartThings **Client ID**
-- SmartThings **Client Secret**
-- Initial **Access Token**
-- **Refresh Token**
+For the plugin to work, you require a **Client ID**, **Client Secret**, an initial **Access Token**, and a **Refresh Token** from the SmartThings API.
 
-A commonly used step-by-step guide is included in the original washer repository:
-- `SmartThings_Oauth2.0_by_Shashank_Mayya.pdf`
+**GUIDE TO ACQUIRE ALL TOKENS:**
 
+The best guide for generating the OAuth 2.0 credentials and acquiring the necessary tokens is provided in this article (Credit: Shashank Mayya):
+
+➡️ **[SmartThings API: Taming the OAuth 2.0 Beast](https://levelup.gitconnected.com/smartthings-api-taming-the-oauth-2-0-beast-5d735ecc6b24)**
+
+> 📌 **Note:** A PDF copy of this guide (e.g., named `SmartThings_Oauth2.0_by_Shashank_Mayya.pdf`) is available in the GitHub repository alongside the source files, in case the original webpage becomes inaccessible. Windows CLI can be used successfully for the steps described.
 ---
 
 ## Installation
