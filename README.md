@@ -1,177 +1,190 @@
-# Samsung SmartThings Washer + Dryer Domoticz Plugin
+# Samsung SmartThings Washer / Dryer – Universal Domoticz Plugin
 
-A Domoticz Python plugin to retrieve and display the **status of a Samsung washing machine and a Samsung tumble dryer** via the **SmartThings Cloud API**.
+This Domoticz Python plugin retrieves and displays the **status of Samsung washing machines and tumble dryers**
+via the **SmartThings Cloud API**.
 
-It shows the core datapoints you typically need for automations:
-- **Power (ON/OFF)**
-- **Job/Cycle state** (washer + dryer)
-- **Remaining time (min)** (forced to **0 min** when no active cycle, based on JobState)
+The plugin is **universal**:
+- it can handle **only a washer**
+- **only a dryer**
+- or **both washer and dryer**
+based solely on which **Device IDs** are configured.
 
-This plugin uses **SmartThings OAuth 2.0** for secure authentication (Access Token + Refresh Token with automatic refresh).
-
----
-
-## Key Features and Use Cases
-
-- **Washer + Dryer in one plugin**: one OAuth2 token handling, two devices monitored.
-- **Reliable “Remaining time”**: displayed only when an active cycle is running; otherwise shown as **0 min** (prevents stale/default values).
-- **Automation-ready**: the `JobState` text device is ideal for DzVents scripts (voice notifications, push alerts, etc.).
-- **Extensible**: you can easily add more Samsung capability fields later (progress, modes, energy data, etc.).
+Authentication is handled via **SmartThings OAuth 2.0** (Access Token + Refresh Token with automatic refresh).
 
 ---
 
-## 1. SmartThings OAuth 2.0 Access
+## Key Features
 
-You need a Client ID, Client Secret, an initial Access Token, and a Refresh Token from SmartThings.
+- **Universal plugin** – washer only / dryer only / washer + dryer
+- **Single OAuth2 integration** for all supported devices
+- **Stable remaining time logic**  
+  Remaining time is shown **only when a cycle is active**, otherwise **0 min**
+- **Automation-friendly**  
+  Cycle / JobState is exposed as a Domoticz *Text device* (ideal for dzVents)
+- **Low API usage** with configurable ON / OFF polling intervals
 
-A widely used guide to obtain OAuth 2.0 credentials/tokens is included in the original washer repository as a PDF:
+---
+
+## Operating Modes (Important)
+
+The plugin behavior is controlled by the Device ID fields:
+
+- **Washer only**
+  - Fill: *Washer Device ID*
+  - Leave empty: *Dryer Device ID*
+
+- **Dryer only**
+  - Fill: *Dryer Device ID*
+  - Leave empty: *Washer Device ID*
+
+- **Washer + Dryer**
+  - Fill **both** Device ID fields
+
+If a Device ID field is empty (or set to `None`), that appliance is **disabled**
+and **will not be queried**.
+
+---
+
+## SmartThings OAuth 2.0
+
+You need:
+- SmartThings **Client ID**
+- SmartThings **Client Secret**
+- Initial **Access Token**
+- **Refresh Token**
+
+A commonly used step-by-step guide is included in the original washer repository:
 - `SmartThings_Oauth2.0_by_Shashank_Mayya.pdf`
 
-> Tip: keep the PDF in your repo so you still have the guide even if the original blog page changes.
-
 ---
 
-## 2. Prerequisites Summary
+## Installation
 
-You must obtain these OAuth values, plus your device IDs:
+1. Copy files into a Domoticz plugin folder, for example:
 
-| Requirement | Used in Plugin As |
-|---|---|
-| SmartThings Client ID | Domoticz parameter **SmartThings Client ID** |
-| SmartThings Client Secret | Domoticz parameter **SmartThings Client Secret** |
-| Access Token (initial) | `st_tokens.json` |
-| Refresh Token | `st_tokens.json` |
-| Washer Device ID | Domoticz parameter **Washer Device ID (SmartThings)** |
-| Dryer Device ID | Domoticz parameter **Dryer Device ID (SmartThings)** |
-
----
-
-## 3. Installation
-
-1. **Copy files** into your Domoticz plugins folder, e.g.:
-   `/home/domoticz/plugins/SmartThingsWasherDryer/`
+   `/home/domoticz/plugins/SmartThings_Washer_Dryer/`
 
    Required files:
    - `plugin.py`
    - `token_manager.py`
 
-2. **Create `st_tokens.json`** in the same folder:
+2. Create `st_tokens.json` in the same folder:
 
 ```json
 {
-  "access_token": "YOUR-FIRST-ACCESS-TOKEN-HERE",
-  "refresh_token": "YOUR-FIRST-REFRESH-TOKEN-HERE",
+  "access_token": "YOUR_INITIAL_ACCESS_TOKEN",
+  "refresh_token": "YOUR_REFRESH_TOKEN",
   "expiry": 0
 }
 ```
 
-Setting `"expiry": 0` forces an immediate refresh on startup.
+Setting `"expiry": 0` forces an immediate refresh at startup.
 
-3. **Restart Domoticz**.
+3. Restart Domoticz.
 
 ---
 
-## 4. Plugin Configuration
-
-In Domoticz (`Setup` → `Hardware`) add the hardware and fill in:
+## Plugin Configuration (Domoticz Hardware)
 
 | Field | Parameter | Description |
 |---|---|---|
-| SmartThings API URL | Address | Usually: `https://api.smartthings.com` |
-| Debug | Port | `0` or `1` |
-| ON State Polling Interval (sec) | Mode1 | Polling frequency when **any device is ON** |
+| SmartThings API URL | Address | Usually `https://api.smartthings.com` |
+| Debug | Port | `0` = off, `1` = on |
+| ON State Polling Interval (sec) | Mode1 | Polling when **any configured device is ON** |
+| OFF State Polling Interval (sec) | Mode5 | Polling when **all configured devices are OFF** |
 | SmartThings Client ID | Mode2 | OAuth Client ID |
 | SmartThings Client Secret | Mode3 | OAuth Client Secret |
-| Washer Device ID (SmartThings) | Mode4 | Washer deviceId |
-| OFF State Polling Interval (sec) | Mode5 | Polling when **both devices are OFF** |
-| Dryer Device ID (SmartThings) | Mode6 | Dryer deviceId |
+| Washer Device ID | Mode4 | Optional – enable washer |
+| Dryer Device ID | Mode6 | Optional – enable dryer |
 
-### Polling Logic (simple)
-- If **washer OR dryer** is ON → use **ON interval**
-- If **both** are OFF → use **OFF interval**
+### Polling Logic
+- If **any enabled device** is ON → ON interval
+- If **all enabled devices** are OFF → OFF interval
 
 ---
 
-## 5. Created Domoticz Devices
+## Created Domoticz Devices
 
-On first run the plugin creates these Domoticz devices:
+### Washer (if enabled)
 
-### Washer devices
 | Device ID | Name | Type | Description |
 |---|---|---|---|
 | `WM_Power` | Washer Status (ON/OFF) | Switch | Power state |
-| `WM_JobState` | Washing Cycle | Text | Cycle/job state |
-| `WM_Remaining` | Washer Remaining Time (min) | Text | Remaining time, **0 min if no active cycle** |
+| `WM_JobState` | Washing Cycle | Text | Cycle / Job state |
+| `WM_Remaining` | Washer Remaining Time (min) | Text | Remaining time, **0 min if idle** |
 
-### Dryer devices
+### Dryer (if enabled)
+
 | Device ID | Name | Type | Description |
 |---|---|---|---|
 | `DR_Power` | Dryer Status (ON/OFF) | Switch | Power state |
-| `DR_JobState` | Drying Cycle | Text | Cycle/job state |
-| `DR_Remaining` | Dryer Remaining Time (min) | Text | Remaining time, **0 min if no active cycle** |
+| `DR_JobState` | Drying Cycle | Text | Cycle / Job state |
+| `DR_Remaining` | Dryer Remaining Time (min) | Text | Remaining time, **0 min if idle** |
 
 ---
 
-## 6. Data Source (SmartThings fields)
+## Data Source (SmartThings API)
 
-All data comes from:
+All data is retrieved from:
 
 `GET /v1/devices/{deviceId}/status`
 
 ### Washer
 - Power: `components.main.switch.switch.value`
 - JobState: `components.main.samsungce.washerOperatingState.washerJobState.value`
-- Remaining (min): `components.main.samsungce.washerOperatingState.remainingTime.value`
+- Remaining time: `components.main.samsungce.washerOperatingState.remainingTime.value`
 
 ### Dryer
 - Power: `components.main.switch.switch.value`
 - JobState: `components.main.samsungce.dryerOperatingState.dryerJobState.value`
-- Remaining (min): `components.main.samsungce.dryerOperatingState.remainingTime.value`
+- Remaining time: `components.main.samsungce.dryerOperatingState.remainingTime.value`
 
-### Remaining time rule
-Remaining time is shown as a real value **only when**:
+### Remaining Time Rule
+Remaining time is considered **valid only if**:
 - `JobState != "none"`
 
-Otherwise it is forced to **0 min** to avoid stale/default values.
+Otherwise it is forced to **0 min** to avoid stale or default values.
 
 ---
 
-## 7. Automation Example (DzVents voice notification)
+## Automation Example (dzVents / Voice Notification)
 
-Typical approach:
-- Trigger on `Washing Cycle` or `Drying Cycle` device change
-- Detect transition from active state → `No active wash` / `No active dry`
-- Execute a `.sh` that sends a Sonos command to play a prepared MP3
+Typical usage:
+- Trigger on **Washing Cycle** or **Drying Cycle** device
+- Detect transition from active state → *No active wash* / *No active dry*
+- Execute a shell script that plays a prepared MP3 via Sonos or another TTS system
 
-This keeps the plugin simple and puts all “notification logic” into DzVents.
+This keeps the plugin focused on data retrieval
+and moves notification logic to dzVents.
 
 ---
 
-## 8. Troubleshooting
+## Troubleshooting
 
-### 401 Unauthorized / Token refresh errors
-- The plugin automatically refreshes access tokens using the refresh token.
-- If refresh fails long-term, regenerate tokens and update `st_tokens.json`, set `"expiry": 0`, restart Domoticz.
+### Device IDs appear empty in logs
+- Ensure the plugin `<plugin key>` contains **no spaces**
+- If the plugin definition was changed, remove and re-add the hardware in Domoticz
 
-### Missing / Unknown state
-- Verify the correct Device IDs for washer/dryer.
-- Check that your SmartThings OAuth integration includes proper read scope(s), e.g. `r:devices:*`.
+### Token refresh problems
+- Verify `st_tokens.json`
+- Ensure OAuth scopes include device read access (e.g. `r:devices:*`)
 
-### “Remaining time looks wrong”
-- Confirm JobState is not `"none"`.
-- Some models report default remaining time while idle; the plugin displays **0 min** in idle state by design.
+### Remaining time always 0
+- Check that `JobState` is not `"none"`
+- Some models report a default remaining time while idle; this is intentionally ignored
 
 ---
 
 ## Changelog
 
-- **v2.0.0**: Added Samsung **dryer** support (washer + dryer in one plugin).
-- **v2.0.1**: Remaining time logic unified: **0 min when JobState is none** (washer + dryer).
+- **v3.9** – Initial washer + dryer integration
+- **v4.0** – Universal plugin (washer only / dryer only / both)
+- **v4.1** – Stability fixes, correct parameter handling, JobState-based remaining time
 
 ---
 
 ## License / Credits
 
-- Built for Domoticz Python plugin framework.
-- Uses SmartThings Cloud API (OAuth 2.0).
-- Based on the original washer plugin structure and token handling.
+- Built for the Domoticz Python plugin framework
+- Uses Samsung SmartThings Cloud API
+- Original washer plugin concept by csutihu
