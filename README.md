@@ -1,6 +1,6 @@
 # Samsung SmartThings Washer / Dryer – Universal Domoticz Plugin
 
-This Domoticz Python plugin retrieves and displays the **status of Samsung washing machines and tumble dryers**
+This Domoticz Python plugin retrieves and displays the **status of Samsung washing machines and dryers**
 via the **SmartThings Cloud API**.
 
 The plugin is **universal**:
